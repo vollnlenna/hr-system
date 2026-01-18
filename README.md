@@ -36,6 +36,9 @@
   <li><strong>Открыть веб-приложение в браузере:</strong><br>
     <a href="http://localhost" target="_blank">http://localhost</a>
   </li>
+  <li><strong>Открыть документацию по проекту:</strong><br>
+    <a href="http://localhost:3002" target="_blank">http://localhost:3002</a>
+  </li>
 </ol>
 <div>
   <h2>Тестовые данные для входа в систему</h2>
