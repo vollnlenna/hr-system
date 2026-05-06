@@ -7,7 +7,6 @@
 
 body {
   background:#fff;
-  padding:20px;
 }
 
 .container {
@@ -15,33 +14,7 @@ body {
   margin:auto;
 }
 
-nav {
-  display:flex;
-  justify-content:center;
-  gap:8px;
-  margin-bottom:18px;
-}
-
-.tab {
-  border: 3px solid #000;
-  background: #fff;
-  color: #000;
-  padding: 12px 20px;
-  border-radius: 6px;
-  text-decoration: none;
-  margin: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  min-height: 44px;
-  font-weight: bold;
-}
-.tab:hover, .tab.active { background:#000; color:#fff; }
-.logout { color: red; border: 3px solid red; }
-.logout:hover { background: red; color: #fff; }
-
-.page { padding: 8px 0; }
+.page { padding: 0 10px 0; }
 .page-controls { margin-bottom: 12px;
   display:flex;
   justify-content:flex-start;
