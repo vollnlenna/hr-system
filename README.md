@@ -32,5 +32,6 @@
   <ul>
     <li><strong>Администратор</strong>: логин <code>admin</code>, пароль <code>admin123</code></li>
     <li><strong>Менеджер по персоналу</strong>: логин <code>manager</code>, пароль <code>manager123</code></li>
+    <li><strong>Руководитель</strong>: логин <code>hrDirector</code>, пароль <code>hrDirector123</code></li>
   </ul>
 </div>
