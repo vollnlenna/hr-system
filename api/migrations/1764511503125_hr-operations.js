@@ -10,47 +10,66 @@ export const up = (pgm) => {
   pgm.createTable('hr_operations', {
     id_hr_operation: {
       type: 'serial',
-      primaryKey: true
+      primaryKey: true,
     },
     id_employee: {
       type: 'integer',
       notNull: true,
       references: '"employees"',
-      onDelete: 'cascade'
+      onDelete: 'cascade',
     },
     id_department: {
       type: 'integer',
       notNull: true,
       references: '"departments"',
-      onDelete: 'cascade'
+      onDelete: 'cascade',
     },
     id_position: {
       type: 'integer',
       notNull: true,
       references: '"positions"',
-      onDelete: 'cascade'
+      onDelete: 'cascade',
     },
     is_active: {
       type: 'boolean',
       notNull: true,
-      default: true
+      default: true,
+    },
+    approval_status: {
+      type: 'varchar(20)',
+      notNull: true,
+      default: 'pending',
     },
     salary: {
       type: 'decimal(10,2)',
-      notNull: true
+      notNull: true,
     },
     created_at: {
       type: 'timestamp',
       notNull: true,
-      default: pgm.func('now()')
+      default: pgm.func('now()'),
     },
     updated_at: {
-      type: 'timestamp'
+      type: 'timestamp',
     },
     deleted_at: {
-      type: 'timestamp'
-    }
+      type: 'timestamp',
+    },
   });
+
+  pgm.addConstraint(
+    'hr_operations',
+    'hr_operations_approval_status_check',
+    `
+      CHECK (
+        approval_status IN (
+          'pending',
+          'approved',
+          'rejected'
+        )
+      )
+    `,
+  );
 };
 
 /**

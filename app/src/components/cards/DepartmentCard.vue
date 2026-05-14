@@ -7,17 +7,20 @@
 
       <div class="card-comment">
         <div class="comment-label">Организация:</div>
-        <div class="comment-content org-block" :class="{ 'org-deleted': orgIsDeleted }" :title="orgTitle">
+        <div
+          class="comment-content org-block"
+          :class="{ 'org-deleted': orgIsDeleted }"
+          :title="orgTitle"
+        >
           <div class="comment-scroll">
             <template v-if="org && !orgIsDeleted">
               {{ org.name }}
             </template>
             <template v-else-if="orgIsDeleted">
-              Организация удалена (<span class="org-deleted-name">{{ org?.name }}</span>)
+              Организация удалена (<span class="org-deleted-name">{{ org?.name }}</span
+              >)
             </template>
-            <template v-else>
-              Организация #{{ row.id_organization }} (не найдена)
-            </template>
+            <template v-else> Организация #{{ row.id_organization }} (не найдена) </template>
           </div>
         </div>
       </div>
@@ -28,13 +31,30 @@
         <div class="subtree-header">
           <div class="comment-label">Подразделения:</div>
           <div class="tree-toolbar">
-            <button class="icon-btn" title="Добавить" @click="$emit('sub-add', selectedId ?? row.id_department)">
+            <button
+              v-if="canManage"
+              class="icon-btn"
+              title="Добавить"
+              @click="$emit('sub-add', selectedId ?? row.id_department)"
+            >
               <Icon icon="mdi:plus" width="16" />
             </button>
-            <button class="icon-btn" title="Переименовать" :disabled="!selectedId" @click="selectedId && $emit('sub-rename', selectedId!)">
+            <button
+              v-if="canManage"
+              class="icon-btn"
+              title="Переименовать"
+              :disabled="!selectedId"
+              @click="selectedId && $emit('sub-rename', selectedId!)"
+            >
               <Icon icon="mdi:pencil-outline" width="16" />
             </button>
-            <button v-if="isAdmin" class="icon-btn" title="Удалить" :disabled="!selectedId" @click="selectedId && onDeleteSub(selectedId!)">
+            <button
+              v-if="isAdmin"
+              class="icon-btn"
+              title="Удалить"
+              :disabled="!selectedId"
+              @click="selectedId && onDeleteSub(selectedId!)"
+            >
               <Icon icon="mdi:trash-can-outline" width="16" />
             </button>
           </div>
@@ -46,12 +66,22 @@
             <li v-for="item in flatTree" :key="item.id">
               <div class="tree-row">
                 <span class="tree-indent" :style="{ width: item.level * 16 + 'px' }"></span>
-                <button class="toggle" v-if="item.hasChildren" @click.stop="toggle(item.id)" :title="expandedSet.has(item.id) ? 'Свернуть' : 'Развернуть'">
+                <button
+                  class="toggle"
+                  v-if="item.hasChildren"
+                  @click.stop="toggle(item.id)"
+                  :title="expandedSet.has(item.id) ? 'Свернуть' : 'Развернуть'"
+                >
                   <Icon v-if="expandedSet.has(item.id)" icon="mdi:chevron-down" width="14" />
                   <Icon v-else icon="mdi:chevron-right" width="14" />
                 </button>
                 <span v-else class="toggle placeholder" />
-                <div class="tree-item card-tree-font" :class="{ selected: selectedId === item.id }" :title="item.name" @click="select(item.id)">
+                <div
+                  class="tree-item card-tree-font"
+                  :class="{ selected: selectedId === item.id }"
+                  :title="item.name"
+                  @click="select(item.id)"
+                >
                   {{ item.name }}
                 </div>
               </div>
@@ -73,8 +103,22 @@
       <div class="sep" />
 
       <div class="card-actions">
-        <button class="btn-edit" :disabled="!!row.deleted_at" @click="$emit('edit', row)">Изменить</button>
-        <button v-if="isAdmin" class="btn-delete" :disabled="!!row.deleted_at" @click="onDeleteCard">Удалить</button>
+        <button
+          class="btn-edit"
+          :disabled="!!row.deleted_at"
+          @click="$emit('edit', row)"
+          v-if="canManage"
+        >
+          Изменить
+        </button>
+        <button
+          v-if="isAdmin"
+          class="btn-delete"
+          :disabled="!!row.deleted_at"
+          @click="onDeleteCard"
+        >
+          Удалить
+        </button>
       </div>
     </div>
 
@@ -94,7 +138,7 @@ import type { Department } from '@/entities/department.ts'
 import type { Organization } from '@/entities/organization.ts'
 import { useAuth } from '@/composables/useAuth'
 
-const { isAdmin } = useAuth();
+const { isAdmin, canManage } = useAuth()
 
 type FlatItem = { id: number; name: string; level: number; hasChildren: boolean }
 
@@ -114,7 +158,7 @@ const emit = defineEmits<{
 }>()
 
 const org = computed<Organization | null>(
-  () => props.organizations.find(o => o.id_organization === props.row.id_organization) ?? null
+  () => props.organizations.find((o) => o.id_organization === props.row.id_organization) ?? null,
 )
 const orgIsDeleted = computed(() => !!org.value?.deleted_at)
 const orgTitle = computed(() => {
@@ -132,7 +176,11 @@ const childrenMap = computed(() => {
       m.set(d.id_parent_department, arr)
     }
   }
-  for (const [k, arr] of m) m.set(k, [...arr].sort((a, b) => a.name.localeCompare(b.name)))
+  for (const [k, arr] of m)
+    m.set(
+      k,
+      [...arr].sort((a, b) => a.name.localeCompare(b.name)),
+    )
   return m
 })
 
@@ -186,10 +234,10 @@ watch(
   () => props.departments,
   (arr) => {
     if (selectedId.value == null) return
-    const exists = arr.some(d => d.id_department === selectedId.value && !d.deleted_at)
+    const exists = arr.some((d) => d.id_department === selectedId.value && !d.deleted_at)
     if (!exists) selectedId.value = null
   },
-  { deep: true }
+  { deep: true },
 )
 
 function onDeleteCard() {
@@ -202,23 +250,58 @@ function onRestore() {
 }
 function formatDate(val: unknown) {
   if (!val) return ''
-  try { return new Date(String(val)).toLocaleString() } catch { return String(val) }
+  try {
+    return new Date(String(val)).toLocaleString()
+  } catch {
+    return String(val)
+  }
 }
 </script>
 
 <style scoped>
-.card-tree-font { font-size: 11px; }
-.subtree-block {  height: 200px; }
-.tree-toolbar { display: flex; gap: 6px; }
-.tree-list { margin: 0; padding: 0; list-style: none; min-width: max-content; }
-.tree-row { display: flex; align-items: center; gap: 6px; margin: 4px 0; white-space: nowrap; width: 100%; }
-.tree-indent { display: inline-block; height: 1px; }
-.toggle {
-  width: 18px; height: 18px; border-radius: 50%;
-  border: 1px solid #aaa; background: #fff; cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+.card-tree-font {
+  font-size: 11px;
 }
-.toggle.placeholder { visibility: hidden; }
+.subtree-block {
+  height: 200px;
+}
+.tree-toolbar {
+  display: flex;
+  gap: 6px;
+}
+.tree-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: max-content;
+}
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0;
+  white-space: nowrap;
+  width: 100%;
+}
+.tree-indent {
+  display: inline-block;
+  height: 1px;
+}
+.toggle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #aaa;
+  background: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.toggle.placeholder {
+  visibility: hidden;
+}
 .tree-item {
   border: 1px solid #e6e6e6;
   background: #f7f7f7;
@@ -227,8 +310,17 @@ function formatDate(val: unknown) {
   color: #222;
   cursor: pointer;
 }
-.tree-item:hover { background: #f0f0f0; }
-.tree-item.selected { background: #e9e9e9; border-color: #aaa; }
-.org-block.org-deleted { color: red; }
-.org-deleted-name { font-style: italic; }
+.tree-item:hover {
+  background: #f0f0f0;
+}
+.tree-item.selected {
+  background: #e9e9e9;
+  border-color: #aaa;
+}
+.org-block.org-deleted {
+  color: red;
+}
+.org-deleted-name {
+  font-style: italic;
+}
 </style>

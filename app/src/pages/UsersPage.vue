@@ -12,14 +12,11 @@
         <option value="all">Все пользователи</option>
         <option value="admin">Администраторы</option>
         <option value="manager">Менеджеры</option>
+        <option value="hrDirector">Руководители</option>
       </select>
 
       <label class="checkbox-label">
-        <input
-          type="checkbox"
-          v-model="showDeleted"
-          class="checkbox-input"
-        />
+        <input type="checkbox" v-model="showDeleted" class="checkbox-input" />
         Удаленные пользователи
       </label>
     </div>
@@ -42,6 +39,8 @@
       />
     </div>
 
+    <div v-if="!filtered.length" class="empty-state">Ничего не найдено</div>
+
     <UserModal
       :visible="form.visible"
       :payload="form.current"
@@ -63,7 +62,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuth } from '../composables/useAuth' // твой useAuth
+import { useAuth } from '../composables/useAuth'
 import UserCard from '../components/cards/UserCard.vue'
 import UserModal from '../components/modals/UserModal.vue'
 import PasswordModal from '../components/modals/PasswordModal.vue'
@@ -83,33 +82,28 @@ const {
   saveUser,
   deleteUser,
   restoreUser,
-  changePassword
+  changePassword,
 } = useUsers()
 
 const searchQuery = ref('')
 const showDeleted = ref(false)
-const roleFilter = ref<'all' | 'admin' | 'manager'>('all')
 
-const currentList = computed(() =>
-  showDeleted.value ? deletedList.value : actualList.value
-)
+const roleFilter = ref<'all' | 'admin' | 'manager' | 'hrDirector'>('all')
+
+const currentList = computed(() => (showDeleted.value ? deletedList.value : actualList.value))
 
 const filtered = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   return currentList.value
-    .filter(user => {
-      if (roleFilter.value === 'admin') {
-        return user.id_role === 1
-      }
-      if (roleFilter.value === 'manager') {
-        return user.id_role === 2
-      }
+    .filter((user) => {
+      if (roleFilter.value === 'admin') return user.id_role === 1
+      if (roleFilter.value === 'manager') return user.id_role === 2
+      if (roleFilter.value === 'hrDirector') return user.id_role === 3
       return true
     })
-    .filter(user => {
+    .filter((user) => {
       if (!q) return true
-      const fio = `${user.last_name} ${user.first_name} ${user.middle_name ?? ''}`
-        .toLowerCase()
+      const fio = `${user.last_name} ${user.first_name} ${user.middle_name ?? ''}`.toLowerCase()
       return fio.includes(q)
     })
 })
@@ -120,12 +114,12 @@ onMounted(async () => {
 
 const form = reactive<{ visible: boolean; current: User | null }>({
   visible: false,
-  current: null
+  current: null,
 })
 
 const passwordModal = reactive<{ visible: boolean; userId: number | null }>({
   visible: false,
-  userId: null
+  userId: null,
 })
 
 function openForm(row?: User) {

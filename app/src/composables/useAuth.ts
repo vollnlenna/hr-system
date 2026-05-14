@@ -9,6 +9,9 @@ export function useAuth() {
   const isAuthenticated = computed(() => !!currentUser.value);
   const isAdmin = computed(() => currentUser.value?.id_role === 1);
   const isManager = computed(() => currentUser.value?.id_role === 2);
+  const canManage = computed(() => {
+    return currentUser.value?.id_role !== 3
+  })
 
   async function login(login: string, password: string) {
     const res = await http.post<User>('/auth/login', { login, password });
@@ -43,8 +46,9 @@ export function useAuth() {
     isAuthenticated,
     isAdmin,
     isManager,
+    canManage,
     login,
     logout,
     fetchMe,
-  };
+  }
 }

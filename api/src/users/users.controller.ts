@@ -51,6 +51,7 @@ export class UsersController {
       return [
         { id: 1, name: 'Администратор' },
         { id: 2, name: 'Менеджер по персоналу' },
+        { id: 3, name: 'Руководитель' },
       ];
     } catch {
       throw new InternalServerErrorException('Ошибка при получении ролей');

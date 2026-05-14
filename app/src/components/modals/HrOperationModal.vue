@@ -15,9 +15,17 @@
       />
 
       <label>Организация</label>
-      <select v-model="form.organizationId" @change="onOrgChange" :disabled="!!form.id && !!form.organizationId">
-      <option :value="null" disabled>Выберите организацию</option>
-        <option v-for="o in activeOrganizations" :key="o.id_organization" :value="o.id_organization">
+      <select
+        v-model="form.organizationId"
+        @change="onOrgChange"
+        :disabled="!!form.id && !!form.organizationId"
+      >
+        <option :value="null" disabled>Выберите организацию</option>
+        <option
+          v-for="o in activeOrganizations"
+          :key="o.id_organization"
+          :value="o.id_organization"
+        >
           {{ o.name }}
         </option>
       </select>
@@ -68,7 +76,12 @@
 import { reactive, ref, watch, computed } from 'vue'
 import { isAxiosError } from 'axios'
 import EmployeeCombobox from '../common/EmployeeCombobox.vue'
-import type { SearchFn, ComboboxItem, EmployeeLike, PositionLike } from '../common/EmployeeCombobox.vue'
+import type {
+  SearchFn,
+  ComboboxItem,
+  EmployeeLike,
+  PositionLike,
+} from '../common/EmployeeCombobox.vue'
 import { useOrganizations } from '@/composables/useOrganizations'
 import { useDepartments } from '@/composables/useDepartments'
 import { useEmployees } from '@/composables/useEmployees'
@@ -89,8 +102,10 @@ const { actualList: departments, loadDepartments } = useDepartments()
 const { searchEmployees, getEmployeeById } = useEmployees()
 const { searchPositions, getPositionById } = usePositions()
 
-const employeeSearchFn: SearchFn<ComboboxItem> = ({ q, limit, offset }) => searchEmployees(q, limit, offset)
-const positionSearchFn: SearchFn<ComboboxItem> = ({ q, limit, offset }) => searchPositions(q, limit, offset)
+const employeeSearchFn: SearchFn<ComboboxItem> = ({ q, limit, offset }) =>
+  searchEmployees(q, limit, offset)
+const positionSearchFn: SearchFn<ComboboxItem> = ({ q, limit, offset }) =>
+  searchPositions(q, limit, offset)
 
 const form = reactive({
   id: null as number | null,
@@ -106,58 +121,59 @@ const error = ref('')
 const selectedEmployee = ref<EmployeeLike | null>(null)
 const selectedPosition = ref<PositionLike | null>(null)
 
-watch(() => props.visible, async (visible) => {
-  if (visible) {
-    await Promise.all([
-      loadOrganizations(),
-      loadDepartments(),
-    ])
+watch(
+  () => props.visible,
+  async (visible) => {
+    if (visible) {
+      await Promise.all([loadOrganizations(), loadDepartments()])
 
-    const p = props.payload
-    if (p) {
-      error.value = ''
+      const p = props.payload
+      if (p) {
+        error.value = ''
 
-      form.id = p.id_hr_operation
-      form.salary = p.salary
-      form.is_active = p.is_active
-      form.employeeId = p.id_employee
-      form.departmentId = p.id_department
-      form.positionId = p.id_position
+        form.id = p.id_hr_operation
+        form.salary = p.salary
+        form.is_active = p.is_active
+        form.employeeId = p.id_employee
+        form.departmentId = p.id_department
+        form.positionId = p.id_position
 
-      form.organizationId = departments.value
-        .find(d => d.id_department === p.id_department)?.id_organization ?? null
+        form.organizationId =
+          departments.value.find((d) => d.id_department === p.id_department)?.id_organization ??
+          null
 
-      if (p.id_employee) {
-        const emp = await getEmployeeById(p.id_employee)
-        if (emp) {
-          selectedEmployee.value = {
-            id_employee: emp.id_employee,
-            last_name: emp.last_name,
-            first_name: emp.first_name,
-            middle_name: emp.middle_name ?? null,
+        if (p.id_employee) {
+          const emp = await getEmployeeById(p.id_employee)
+          if (emp) {
+            selectedEmployee.value = {
+              id_employee: emp.id_employee,
+              last_name: emp.last_name,
+              first_name: emp.first_name,
+              middle_name: emp.middle_name ?? null,
+            }
+          }
+        }
+        if (p.id_position) {
+          const pos = await getPositionById(p.id_position)
+          if (pos) {
+            selectedPosition.value = {
+              id_position: pos.id_position,
+              name: pos.name,
+            }
           }
         }
       }
-      if (p.id_position) {
-        const pos = await getPositionById(p.id_position)
-        if (pos) {
-          selectedPosition.value = {
-            id_position: pos.id_position,
-            name: pos.name,
-          }
-        }
-      }
+    } else {
+      resetForm(true)
     }
-  } else {
-    resetForm(true)
-  }
-})
+  },
+)
 
-const activeOrganizations = computed(() => organizations.value.filter(o => !o.deleted_at))
+const activeOrganizations = computed(() => organizations.value.filter((o) => !o.deleted_at))
 const filteredDepartments = computed(() =>
   form.organizationId
-    ? departments.value.filter(d => d.id_organization === form.organizationId && !d.deleted_at)
-    : []
+    ? departments.value.filter((d) => d.id_organization === form.organizationId && !d.deleted_at)
+    : [],
 )
 
 watch(selectedEmployee, (emp) => {
@@ -190,15 +206,20 @@ function resetForm(clearId = false) {
 }
 
 function hasActiveOperation(employeeId: number): boolean {
-  return props.existingOperations.some(op =>
-    op.id_employee === employeeId && op.is_active && !op.deleted_at && op.id_hr_operation !== form.id
+  return props.existingOperations.some(
+    (op) =>
+      op.id_employee === employeeId &&
+      op.is_active &&
+      op.approval_status !== 'rejected' &&
+      !op.deleted_at &&
+      op.id_hr_operation !== form.id,
   )
 }
 
 async function submit() {
   error.value = ''
   if (!form.id && form.employeeId && hasActiveOperation(form.employeeId)) {
-    error.value = 'Этот сотрудник уже работает!'
+    error.value = 'Этот сотрудник уже работает/на рассмотрении!'
     return
   }
   try {

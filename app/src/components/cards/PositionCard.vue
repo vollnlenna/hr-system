@@ -6,8 +6,17 @@
       <div class="sep" />
 
       <div class="card-actions">
-        <button class="btn-edit" :disabled="!!row.deleted_at" @click="$emit('edit', row)">Изменить</button>
-        <button v-if="isAdmin" class="btn-delete" :disabled="!!row.deleted_at" @click="onDelete">Удалить</button>
+        <button
+          class="btn-edit"
+          :disabled="!!row.deleted_at"
+          @click="$emit('edit', row)"
+          v-if="canManage"
+        >
+          Изменить
+        </button>
+        <button v-if="isAdmin" class="btn-delete" :disabled="!!row.deleted_at" @click="onDelete">
+          Удалить
+        </button>
       </div>
     </div>
 
@@ -24,7 +33,7 @@
 import type { Position } from '@/entities/position.ts'
 import { useAuth } from '@/composables/useAuth'
 
-const { isAdmin } = useAuth();
+const { isAdmin, canManage } = useAuth()
 
 const props = defineProps<{ row: Position }>()
 const emit = defineEmits<{

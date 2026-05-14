@@ -36,7 +36,6 @@ input, textarea, select {
 }
 
 select {
-  margin-top: 5px;
   padding-right: 34px;
   appearance: none;
   -webkit-appearance: none;
@@ -136,18 +135,18 @@ select::-ms-expand { display: none; }
 }
 
 .search-input {
-  margin-bottom: 12px;
+  margin-bottom: 0;
   padding: 8px;
   width: 100%;
   box-sizing: border-box;
   border-radius: 8px;
   border: 1px solid #aaa;
 }
-
 .search-row {
   display: flex;
   align-items: center;
   gap: 20px;
+  margin-bottom: 12px;
 }
 .top { gap: 12px; margin-bottom: 12px; }
 .top select, .top input { padding: 8px; margin: 0; }
@@ -219,4 +218,14 @@ select::-ms-expand { display: none; }
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 50px 20px;
+  color: #666;
+  font-size: 16px;
+  font-style: italic;
 }

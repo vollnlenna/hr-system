@@ -9,16 +9,12 @@
       />
 
       <label class="checkbox-label">
-        <input
-          type="checkbox"
-          v-model="showDeleted"
-          class="checkbox-input"
-        />
+        <input type="checkbox" v-model="showDeleted" class="checkbox-input" />
         Удаленные должности
       </label>
     </div>
 
-    <div class="page-controls" v-if="!showDeleted">
+    <div class="page-controls" v-if="canManage && !showDeleted">
       <button class="btn-add" @click="openForm()">Добавить</button>
     </div>
 
@@ -32,6 +28,8 @@
         @restore="restoreRow"
       />
     </div>
+
+    <div v-if="!filtered.length" class="empty-state">Ничего не найдено</div>
 
     <PositionModal
       :visible="form.visible"
@@ -48,25 +46,30 @@ import PositionCard from '../components/cards/PositionCard.vue'
 import PositionModal from '../components/modals/PositionModal.vue'
 import { usePositions } from '../composables/usePositions'
 import type { Position, PositionSave } from '../entities/position'
+import { useAuth } from '../composables/useAuth'
 
-const { actualList, deletedList, loadPositions, savePosition, deletePosition, restorePosition } = usePositions()
+const { canManage } = useAuth()
+
+const { actualList, deletedList, loadPositions, savePosition, deletePosition, restorePosition } =
+  usePositions()
 
 const searchQuery = ref('')
 const showDeleted = ref(false)
 
-const currentList = computed(() =>
-  showDeleted.value ? deletedList.value : actualList.value
-)
+const currentList = computed(() => (showDeleted.value ? deletedList.value : actualList.value))
 
 const filtered = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return currentList.value
-  return currentList.value.filter(x => x.name.toLowerCase().includes(q))
+  return currentList.value.filter((x) => x.name.toLowerCase().includes(q))
 })
 
 onMounted(loadPositions)
 
-const form = reactive<{ visible: boolean; current: Position | null }>({ visible: false, current: null })
+const form = reactive<{ visible: boolean; current: Position | null }>({
+  visible: false,
+  current: null,
+})
 
 function openForm(row?: Position) {
   form.current = row ?? null

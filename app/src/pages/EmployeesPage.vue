@@ -9,16 +9,12 @@
       />
 
       <label class="checkbox-label">
-        <input
-          type="checkbox"
-          v-model="showDeleted"
-          class="checkbox-input"
-        />
+        <input type="checkbox" v-model="showDeleted" class="checkbox-input" />
         Удаленные сотрудники
       </label>
     </div>
 
-    <div class="page-controls" v-if="!showDeleted">
+    <div class="page-controls" v-if="canManage && !showDeleted">
       <button class="btn-add" @click="openForm()">Добавить</button>
     </div>
 
@@ -32,6 +28,8 @@
         @restore="restoreRow"
       />
     </div>
+
+    <div v-if="!filtered.length" class="empty-state">Ничего не найдено</div>
 
     <EmployeeModal
       :visible="form.visible"
@@ -48,21 +46,23 @@ import EmployeeCard from '../components/cards/EmployeeCard.vue'
 import EmployeeModal from '../components/modals/EmployeeModal.vue'
 import { useEmployees } from '../composables/useEmployees'
 import type { Employee, EmployeeSave } from '../entities/employee'
+import { useAuth } from '../composables/useAuth'
 
-const { actualList, deletedList, loadEmployees, saveEmployee, deleteEmployee, restoreEmployee } = useEmployees()
+const { canManage } = useAuth()
+
+const { actualList, deletedList, loadEmployees, saveEmployee, deleteEmployee, restoreEmployee } =
+  useEmployees()
 
 const searchQuery = ref('')
 const showDeleted = ref(false)
 
-const currentList = computed(() =>
-  showDeleted.value ? deletedList.value : actualList.value
-)
+const currentList = computed(() => (showDeleted.value ? deletedList.value : actualList.value))
 
 const filtered = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return currentList.value
-  return currentList.value.filter(d =>
-    `${d.last_name} ${d.first_name} ${d.middle_name}`.toLowerCase().includes(q)
+  return currentList.value.filter((d) =>
+    `${d.last_name} ${d.first_name} ${d.middle_name}`.toLowerCase().includes(q),
   )
 })
 
@@ -70,7 +70,7 @@ onMounted(loadEmployees)
 
 const form = reactive<{ visible: boolean; current: Employee | null }>({
   visible: false,
-  current: null
+  current: null,
 })
 
 function openForm(row?: Employee) {
@@ -96,4 +96,3 @@ async function restoreRow(row: Employee) {
   await restoreEmployee(row.id_employee)
 }
 </script>
-

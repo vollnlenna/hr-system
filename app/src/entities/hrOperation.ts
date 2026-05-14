@@ -1,9 +1,12 @@
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
+
 export interface HrOperation {
   id_hr_operation: number
   id_employee: number
   id_department: number
   id_position: number
   is_active: boolean
+  approval_status: ApprovalStatus
   salary: number
   created_at: Date
   updated_at?: Date | null

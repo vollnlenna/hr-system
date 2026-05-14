@@ -33,7 +33,13 @@
       <div class="subtree-block">
         <div class="subtree-header">
           <div class="comment-label">Скан паспорта:</div>
-          <button class="icon-btn" title="Добавить скан" @click="openScanModal" :disabled="!!row.deleted_at">
+          <button
+            v-if="canManage"
+            class="icon-btn"
+            title="Добавить скан"
+            @click="openScanModal"
+            :disabled="!!row.deleted_at"
+          >
             <Icon icon="mdi:plus" width="16" />
           </button>
         </div>
@@ -48,7 +54,13 @@
                   {{ scan.file_name }}
                 </a>
               </div>
-              <button v-if="isAdmin" class="icon-btn" title="Удалить скан" @click="onDeleteScan(scan)" :disabled="!!row.deleted_at">
+              <button
+                v-if="isAdmin"
+                class="icon-btn"
+                title="Удалить скан"
+                @click="onDeleteScan(scan)"
+                :disabled="!!row.deleted_at"
+              >
                 <Icon icon="mdi:close" width="14" />
               </button>
             </li>
@@ -59,8 +71,22 @@
       <div class="sep" />
 
       <div class="card-actions">
-        <button class="btn-edit" :disabled="!!row.deleted_at" @click="$emit('edit', row)">Изменить</button>
-        <button v-if="isAdmin" class="btn-delete" :disabled="!!row.deleted_at" @click="onDeleteCard">Удалить</button>
+        <button
+          class="btn-edit"
+          :disabled="!!row.deleted_at"
+          @click="$emit('edit', row)"
+          v-if="canManage"
+        >
+          Изменить
+        </button>
+        <button
+          v-if="isAdmin"
+          class="btn-delete"
+          :disabled="!!row.deleted_at"
+          @click="onDeleteCard"
+        >
+          Удалить
+        </button>
       </div>
     </div>
 
@@ -88,7 +114,7 @@ import ScanModal from '../modals/ScanModal.vue'
 import type { Employee, PassportScan } from '@/entities/employee.ts'
 import { useAuth } from '@/composables/useAuth'
 
-const { isAdmin } = useAuth();
+const { isAdmin, canManage } = useAuth()
 
 const props = defineProps<{ row: Employee }>()
 const emit = defineEmits<{
@@ -115,14 +141,12 @@ function formatDateTime(val: string | undefined) {
 }
 
 function getFileUrl(filePath: string): string {
-  return `/api/files/storage/${filePath}`;
+  return `/api/files/storage/${filePath}`
 }
 
 async function loadScans() {
   try {
-    const res = await http.get<PassportScan[]>(
-      `/passport-scans/employee/${props.row.id_employee}`
-    )
+    const res = await http.get<PassportScan[]>(`/passport-scans/employee/${props.row.id_employee}`)
     scans.value = res.data
   } catch {
     scans.value = []
@@ -132,7 +156,7 @@ async function loadScans() {
 watch(
   () => props.row.id_employee,
   () => void loadScans(),
-  { immediate: true }
+  { immediate: true },
 )
 
 const scanModal = reactive({ visible: false })
@@ -152,7 +176,7 @@ async function onDeleteScan(scan: PassportScan) {
   try {
     await http.delete(`/files/${scan.id_file}`)
     await loadScans()
-  } catch { }
+  } catch {}
 }
 
 function onDeleteCard() {

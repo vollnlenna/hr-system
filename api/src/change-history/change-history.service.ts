@@ -65,4 +65,14 @@ export class ChangeHistoryService {
     );
     return result.rows[0] ?? null;
   }
+
+  async getByHrOperation(id: number): Promise<ChangeHistory[]> {
+    const result: QueryResult<ChangeHistory> = await this.pgPool.query(
+      `select * from change_history
+       where id_hr_operation = $1
+       order by changed_at desc`,
+      [id],
+    );
+    return result.rows;
+  }
 }

@@ -24,7 +24,7 @@
     <a href="http://localhost" target="_blank">http://localhost</a>
   </li>
   <li><strong>Открыть документацию по проекту:</strong><br>
-    <a href="http://localhost:3002" target="_blank">http://localhost:3002</a>
+    <a href="http://localhost/docs" target="_blank">http://localhost/docs</a>
   </li>
 </ol>
 <div>

@@ -15,11 +15,18 @@ import { Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
+import {
+  ChangeHistoryService,
+  ChangeHistory,
+} from '../change-history/change-history.service';
 
 @UseGuards(AuthGuard)
 @Controller('hr-operations')
 export class HrOperationsController {
-  constructor(private readonly hrOperationsService: HrOperationsService) {}
+  constructor(
+    private readonly hrOperationsService: HrOperationsService,
+    private readonly changeHistoryService: ChangeHistoryService,
+  ) {}
 
   @Get()
   async getAll(): Promise<HrOperation[]> {
@@ -39,6 +46,17 @@ export class HrOperationsController {
     } catch {
       throw new InternalServerErrorException(
         'Ошибка при получении удаленных кадровых операций',
+      );
+    }
+  }
+
+  @Get(':id/history')
+  async getHistory(@Param('id') id: number): Promise<ChangeHistory[]> {
+    try {
+      return await this.changeHistoryService.getByHrOperation(id);
+    } catch {
+      throw new InternalServerErrorException(
+        'Ошибка при получении истории операции',
       );
     }
   }
@@ -63,12 +81,17 @@ export class HrOperationsController {
       id_position: number;
       salary: number;
       is_active?: boolean;
+      is_approved?: boolean;
     },
     @Req() req: Request,
   ): Promise<HrOperation> {
     const user = req.user as { id_user: number };
+
     const { error } = validateHrOperation.validate(data);
-    if (error) throw new BadRequestException(error.message);
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
 
     try {
       return await this.hrOperationsService.create(data, user.id_user);
@@ -76,6 +99,19 @@ export class HrOperationsController {
       throw new InternalServerErrorException(
         'Ошибка при создании кадровой операции',
       );
+    }
+  }
+
+  @Patch(':id/revert')
+  async revert(
+    @Param('id') id: number,
+    @Req() req: Request,
+  ): Promise<HrOperation | null> {
+    const user = req.user as { id_user: number };
+    try {
+      return await this.hrOperationsService.revertToApproved(id, user.id_user);
+    } catch {
+      throw new InternalServerErrorException('Ошибка при откате операции');
     }
   }
 
@@ -88,12 +124,17 @@ export class HrOperationsController {
       id_position?: number;
       salary?: number;
       is_active?: boolean;
+      is_approved?: boolean;
     },
     @Req() req: Request,
   ): Promise<HrOperation | null> {
     const user = req.user as { id_user: number };
+
     const { error } = validateHrOperation.validate(data);
-    if (error) throw new BadRequestException(error.message);
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
 
     try {
       return await this.hrOperationsService.update(id, data, user.id_user);
@@ -104,12 +145,35 @@ export class HrOperationsController {
     }
   }
 
+  @Patch(':id/approve')
+  async approve(@Param('id') id: number): Promise<HrOperation | null> {
+    try {
+      return await this.hrOperationsService.approve(id);
+    } catch {
+      throw new InternalServerErrorException(
+        'Ошибка подтверждения кадровой операции',
+      );
+    }
+  }
+
+  @Patch(':id/reject')
+  async reject(@Param('id') id: number): Promise<HrOperation | null> {
+    try {
+      return await this.hrOperationsService.reject(id);
+    } catch {
+      throw new InternalServerErrorException(
+        'Ошибка отклонения кадровой операции',
+      );
+    }
+  }
+
   @Delete(':id')
   async delete(
     @Param('id') id: number,
     @Req() req: Request,
   ): Promise<HrOperation | null> {
     const user = req.user as { id_user: number };
+
     try {
       return await this.hrOperationsService.delete(id, user.id_user);
     } catch {
@@ -125,6 +189,7 @@ export class HrOperationsController {
     @Req() req: Request,
   ): Promise<HrOperation | null> {
     const user = req.user as { id_user: number };
+
     try {
       return await this.hrOperationsService.restore(id, user.id_user);
     } catch {

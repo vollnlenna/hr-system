@@ -11,7 +11,8 @@ export const up = (pgm) => {
     insert into users (last_name, first_name, middle_name, login, password_hash, id_role, created_at, updated_at)
     values
       ('Иванов', 'Алексей', 'Петрович', 'admin', '$argon2id$v=19$m=16,t=2,p=1$N3BTd0xFZkNaY3dxaDllaA$qloFL5jMhiSfwgNBweuS4g', 1, now(), now()),
-      ('Петрова', 'Елена', 'Сергеевна', 'manager', '$argon2id$v=19$m=16,t=2,p=1$TkUyY2pDSURHSURzWk54Ng$1vMmGAqzPa6FQba+KJkH1w', 2, now(), now());
+      ('Петрова', 'Елена', 'Сергеевна', 'manager', '$argon2id$v=19$m=16,t=2,p=1$TkUyY2pDSURHSURzWk54Ng$1vMmGAqzPa6FQba+KJkH1w', 2, now(), now()),
+      ('Васильев', 'Андрей', 'Игоревич', 'hrDirector', '$argon2id$v=19$m=16,t=2,p=1$SDFXR1Q5c2RhaUc5N2JlQw$XJZodyOa5dobvJscauPnXA', 3, now(), now());
   `);
 };
 

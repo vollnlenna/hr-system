@@ -9,16 +9,12 @@
       />
 
       <label class="checkbox-label">
-        <input
-          type="checkbox"
-          v-model="showDeleted"
-          class="checkbox-input"
-        />
+        <input type="checkbox" v-model="showDeleted" class="checkbox-input" />
         Удаленные организации
       </label>
     </div>
 
-    <div class="page-controls" v-if="!showDeleted">
+    <div class="page-controls" v-if="canManage && !showDeleted">
       <button class="btn-add" @click="openForm()">Добавить</button>
     </div>
 
@@ -32,6 +28,8 @@
         @restore="restoreRow"
       />
     </div>
+
+    <div v-if="!filtered.length" class="empty-state">Ничего не найдено</div>
 
     <OrgModal
       :visible="form.visible"
@@ -48,25 +46,36 @@ import OrganizationCard from '../components/cards/OrganizationCard.vue'
 import OrgModal from '../components/modals/OrgModal.vue'
 import { useOrganizations } from '../composables/useOrganizations'
 import type { Organization, OrganizationSave } from '../entities/organization'
+import { useAuth } from '../composables/useAuth'
 
-const { actualList, deletedList, loadOrganizations, saveOrganization, deleteOrganization, restoreOrganization } = useOrganizations()
+const { canManage } = useAuth()
+
+const {
+  actualList,
+  deletedList,
+  loadOrganizations,
+  saveOrganization,
+  deleteOrganization,
+  restoreOrganization,
+} = useOrganizations()
 
 const searchQuery = ref('')
 const showDeleted = ref(false)
 
-const currentList = computed(() =>
-  showDeleted.value ? deletedList.value : actualList.value
-)
+const currentList = computed(() => (showDeleted.value ? deletedList.value : actualList.value))
 
 const filtered = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return currentList.value
-  return currentList.value.filter(x => x.name.toLowerCase().includes(q))
+  return currentList.value.filter((x) => x.name.toLowerCase().includes(q))
 })
 
 onMounted(loadOrganizations)
 
-const form = reactive<{ visible: boolean; current: Organization | null }>({ visible: false, current: null })
+const form = reactive<{ visible: boolean; current: Organization | null }>({
+  visible: false,
+  current: null,
+})
 
 function openForm(row?: Organization) {
   form.current = row ?? null

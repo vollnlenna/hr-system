@@ -10,6 +10,7 @@ export interface HrOperation {
   id_position: number;
   salary: number;
   is_active: boolean;
+  approval_status: 'pending' | 'approved' | 'rejected';
   created_at: Date;
   updated_at?: Date | null;
   deleted_at?: Date | null;
@@ -20,6 +21,12 @@ export interface HrOperation {
   position_name?: string;
 
   [key: string]: unknown;
+}
+
+interface HistoryRow {
+  changed_at: Date;
+  field_name: string | null;
+  old_value: string | null;
 }
 
 @Injectable()
@@ -104,8 +111,20 @@ export class HrOperationsService {
     id_user: number,
   ): Promise<HrOperation> {
     const result: QueryResult<HrOperation> = await this.pgPool.query(
-      `insert into hr_operations (id_employee, id_department, id_position, salary, is_active, created_at, updated_at)
-       values ($1, $2, $3, $4, $5, now(), now()) returning *`,
+      `
+        insert into hr_operations (
+          id_employee,
+          id_department,
+          id_position,
+          salary,
+          is_active,
+          approval_status,
+          created_at,
+          updated_at
+        )
+        values ($1, $2, $3, $4, $5, 'pending', now(), now())
+          returning *
+      `,
       [
         data.id_employee,
         data.id_department,
@@ -114,13 +133,16 @@ export class HrOperationsService {
         data.is_active ?? true,
       ],
     );
+
     const created = result.rows[0];
+
     await logEntityChanges(this.history, {
       entity: 'hr_operation',
       oldRow: {} as HrOperation,
       newRow: created,
       id_user,
     });
+
     return created;
   }
 
@@ -135,20 +157,27 @@ export class HrOperationsService {
     id_user: number,
   ): Promise<HrOperation | null> {
     const oldRow = await this.getById(id);
+
     if (!oldRow) return null;
 
     const result: QueryResult<HrOperation> = await this.pgPool.query(
-      `update hr_operations
-       set id_department = coalesce($2, id_department),
-           id_position = coalesce($3, id_position),
-           salary = coalesce($4, salary),
-           is_active = coalesce($5, is_active),
-           updated_at = now()
-       where id_hr_operation = $1
-         returning *`,
+      `
+        update hr_operations
+        set
+          id_department = coalesce($2, id_department),
+          id_position = coalesce($3, id_position),
+          salary = coalesce($4, salary),
+          is_active = coalesce($5, is_active),
+          approval_status = 'pending',
+          updated_at = now()
+        where id_hr_operation = $1
+          returning *
+      `,
       [id, data.id_department, data.id_position, data.salary, data.is_active],
     );
+
     const newRow = result.rows[0];
+
     if (newRow) {
       await logEntityChanges(this.history, {
         entity: 'hr_operation',
@@ -157,18 +186,57 @@ export class HrOperationsService {
         id_user,
       });
     }
+
     return newRow ?? null;
+  }
+
+  async approve(id: number): Promise<HrOperation | null> {
+    const result: QueryResult<HrOperation> = await this.pgPool.query(
+      `
+        update hr_operations
+        set
+          approval_status = 'approved',
+          updated_at = now()
+        where id_hr_operation = $1
+          returning *
+      `,
+      [id],
+    );
+
+    return result.rows[0] ?? null;
+  }
+
+  async reject(id: number): Promise<HrOperation | null> {
+    const result: QueryResult<HrOperation> = await this.pgPool.query(
+      `
+        update hr_operations
+        set
+          approval_status = 'rejected',
+          updated_at = now()
+        where id_hr_operation = $1
+          returning *
+      `,
+      [id],
+    );
+
+    return result.rows[0] ?? null;
   }
 
   async delete(id: number, id_user: number): Promise<HrOperation | null> {
     const oldRow = await this.getById(id);
+
     if (!oldRow) return null;
 
     const result: QueryResult<HrOperation> = await this.pgPool.query(
-      `update hr_operations set deleted_at = now() where id_hr_operation = $1 returning *`,
+      `update hr_operations
+       set deleted_at = now()
+       where id_hr_operation = $1
+         returning *`,
       [id],
     );
+
     const newRow = result.rows[0];
+
     if (newRow) {
       await logEntityChanges(this.history, {
         entity: 'hr_operation',
@@ -177,18 +245,26 @@ export class HrOperationsService {
         id_user,
       });
     }
+
     return newRow ?? null;
   }
 
   async restore(id: number, id_user: number): Promise<HrOperation | null> {
     const oldRow = await this.getById(id);
+
     if (!oldRow) return null;
 
     const result: QueryResult<HrOperation> = await this.pgPool.query(
-      `update hr_operations set deleted_at = null where id_hr_operation = $1 and deleted_at is not null returning *`,
+      `update hr_operations
+       set deleted_at = null
+       where id_hr_operation = $1
+         and deleted_at is not null
+         returning *`,
       [id],
     );
+
     const newRow = result.rows[0];
+
     if (newRow) {
       await logEntityChanges(this.history, {
         entity: 'hr_operation',
@@ -197,6 +273,74 @@ export class HrOperationsService {
         id_user,
       });
     }
+
+    return newRow ?? null;
+  }
+
+  async revertToApproved(
+    id: number,
+    id_user: number,
+  ): Promise<HrOperation | null> {
+    const historyResult = await this.pgPool.query<HistoryRow>(
+      `select changed_at, field_name, old_value from change_history
+       where id_hr_operation = $1
+       order by changed_at desc`,
+      [id],
+    );
+
+    const history = historyResult.rows;
+
+    if (!history.length) return null;
+
+    const firstRow = history[0];
+    if (!firstRow) return null;
+    const lastTime = new Date(firstRow.changed_at).getTime();
+
+    const lastBatch = history.filter(
+      (h) => Math.abs(new Date(h.changed_at).getTime() - lastTime) < 1000,
+    );
+
+    const oldValues: Record<string, string | null> = {};
+    for (const h of lastBatch) {
+      if (h.field_name && h.old_value != null) {
+        oldValues[h.field_name] = h.old_value;
+      }
+    }
+
+    const oldRow = await this.getById(id);
+    if (!oldRow) return null;
+
+    const result: QueryResult<HrOperation> = await this.pgPool.query(
+      `update hr_operations
+       set
+         id_department   = coalesce($2, id_department),
+         id_position     = coalesce($3, id_position),
+         salary          = coalesce($4, salary),
+         is_active       = coalesce($5, is_active),
+         approval_status = 'approved',
+         updated_at      = now()
+       where id_hr_operation = $1
+         returning *`,
+      [
+        id,
+        oldValues['id_department'] ?? null,
+        oldValues['id_position'] ?? null,
+        oldValues['salary'] ?? null,
+        oldValues['is_active'] ?? null,
+      ],
+    );
+
+    const newRow = result.rows[0];
+
+    if (newRow) {
+      await logEntityChanges(this.history, {
+        entity: 'hr_operation',
+        oldRow,
+        newRow,
+        id_user,
+      });
+    }
+
     return newRow ?? null;
   }
 }
