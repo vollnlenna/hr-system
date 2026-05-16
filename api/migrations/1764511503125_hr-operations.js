@@ -30,10 +30,13 @@ export const up = (pgm) => {
       references: '"positions"',
       onDelete: 'cascade',
     },
-    is_active: {
-      type: 'boolean',
+    active_status: {
+      type: 'varchar(20)',
       notNull: true,
-      default: true,
+      default: 'applicant',
+    },
+    reject_reason: {
+      type: 'text',
     },
     approval_status: {
       type: 'varchar(20)',
@@ -69,6 +72,19 @@ export const up = (pgm) => {
         )
       )
     `,
+  );
+  pgm.addConstraint(
+    'hr_operations',
+    'hr_operations_active_status_check',
+    `
+    CHECK (
+      active_status IN (
+        'applicant',
+        'active',
+        'dismissed'
+      )
+    )
+  `,
   );
 };
 

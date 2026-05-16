@@ -9,7 +9,8 @@ export interface HrOperation {
   id_department: number;
   id_position: number;
   salary: number;
-  is_active: boolean;
+  active_status: 'applicant' | 'active' | 'dismissed';
+  reject_reason?: string | null;
   approval_status: 'pending' | 'approved' | 'rejected';
   created_at: Date;
   updated_at?: Date | null;
@@ -106,7 +107,6 @@ export class HrOperationsService {
       id_department: number;
       id_position: number;
       salary: number;
-      is_active?: boolean;
     },
     id_user: number,
   ): Promise<HrOperation> {
@@ -117,21 +117,16 @@ export class HrOperationsService {
           id_department,
           id_position,
           salary,
-          is_active,
+          active_status,
           approval_status,
+          reject_reason,
           created_at,
           updated_at
         )
-        values ($1, $2, $3, $4, $5, 'pending', now(), now())
+        values ($1, $2, $3, $4, 'applicant', 'pending', null, now(), now())
           returning *
       `,
-      [
-        data.id_employee,
-        data.id_department,
-        data.id_position,
-        data.salary,
-        data.is_active ?? true,
-      ],
+      [data.id_employee, data.id_department, data.id_position, data.salary],
     );
 
     const created = result.rows[0];
@@ -152,7 +147,7 @@ export class HrOperationsService {
       id_department?: number;
       id_position?: number;
       salary?: number;
-      is_active?: boolean;
+      active_status?: 'applicant' | 'active' | 'dismissed';
     },
     id_user: number,
   ): Promise<HrOperation | null> {
@@ -167,13 +162,20 @@ export class HrOperationsService {
           id_department = coalesce($2, id_department),
           id_position = coalesce($3, id_position),
           salary = coalesce($4, salary),
-          is_active = coalesce($5, is_active),
+          active_status = coalesce($5, active_status),
           approval_status = 'pending',
+          reject_reason = null,
           updated_at = now()
         where id_hr_operation = $1
           returning *
       `,
-      [id, data.id_department, data.id_position, data.salary, data.is_active],
+      [
+        id,
+        data.id_department,
+        data.id_position,
+        data.salary,
+        data.active_status,
+      ],
     );
 
     const newRow = result.rows[0];
@@ -196,6 +198,12 @@ export class HrOperationsService {
         update hr_operations
         set
           approval_status = 'approved',
+          active_status = case
+            when active_status = 'applicant'
+              then 'active'
+            else active_status
+            end,
+          reject_reason = null,
           updated_at = now()
         where id_hr_operation = $1
           returning *
@@ -206,17 +214,18 @@ export class HrOperationsService {
     return result.rows[0] ?? null;
   }
 
-  async reject(id: number): Promise<HrOperation | null> {
+  async reject(id: number, reason: string | null): Promise<HrOperation | null> {
     const result: QueryResult<HrOperation> = await this.pgPool.query(
       `
         update hr_operations
         set
           approval_status = 'rejected',
+          reject_reason = $2,
           updated_at = now()
         where id_hr_operation = $1
           returning *
       `,
-      [id],
+      [id, reason],
     );
 
     return result.rows[0] ?? null;
@@ -290,13 +299,35 @@ export class HrOperationsService {
 
     const history = historyResult.rows;
 
-    if (!history.length) return null;
+    if (!history.length) {
+      return null;
+    }
 
-    const firstRow = history[0];
-    if (!firstRow) return null;
+    const SKIP_FIELDS = new Set([
+      'approval_status',
+      'deleted_at',
+      'created_at',
+      'updated_at',
+      'reject_reason',
+    ]);
+
+    const meaningfulHistory = history.filter(
+      (h) => h.field_name && !SKIP_FIELDS.has(h.field_name),
+    );
+
+    if (!meaningfulHistory.length) {
+      return null;
+    }
+
+    const firstRow = meaningfulHistory[0];
+
+    if (!firstRow) {
+      return null;
+    }
+
     const lastTime = new Date(firstRow.changed_at).getTime();
 
-    const lastBatch = history.filter(
+    const lastBatch = meaningfulHistory.filter(
       (h) => Math.abs(new Date(h.changed_at).getTime() - lastTime) < 1000,
     );
 
@@ -316,8 +347,9 @@ export class HrOperationsService {
          id_department   = coalesce($2, id_department),
          id_position     = coalesce($3, id_position),
          salary          = coalesce($4, salary),
-         is_active       = coalesce($5, is_active),
+         active_status   = coalesce($5, active_status),
          approval_status = 'approved',
+         reject_reason   = null,
          updated_at      = now()
        where id_hr_operation = $1
          returning *`,
@@ -326,7 +358,7 @@ export class HrOperationsService {
         oldValues['id_department'] ?? null,
         oldValues['id_position'] ?? null,
         oldValues['salary'] ?? null,
-        oldValues['is_active'] ?? null,
+        oldValues['active_status'] ?? null,
       ],
     );
 

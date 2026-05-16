@@ -80,8 +80,6 @@ export class HrOperationsController {
       id_department: number;
       id_position: number;
       salary: number;
-      is_active?: boolean;
-      is_approved?: boolean;
     },
     @Req() req: Request,
   ): Promise<HrOperation> {
@@ -123,8 +121,7 @@ export class HrOperationsController {
       id_department?: number;
       id_position?: number;
       salary?: number;
-      is_active?: boolean;
-      is_approved?: boolean;
+      active_status?: 'applicant' | 'active' | 'dismissed';
     },
     @Req() req: Request,
   ): Promise<HrOperation | null> {
@@ -157,9 +154,15 @@ export class HrOperationsController {
   }
 
   @Patch(':id/reject')
-  async reject(@Param('id') id: number): Promise<HrOperation | null> {
+  async reject(
+    @Param('id') id: number,
+    @Body()
+    body: {
+      reason?: string | null;
+    },
+  ): Promise<HrOperation | null> {
     try {
-      return await this.hrOperationsService.reject(id);
+      return await this.hrOperationsService.reject(id, body.reason ?? null);
     } catch {
       throw new InternalServerErrorException(
         'Ошибка отклонения кадровой операции',

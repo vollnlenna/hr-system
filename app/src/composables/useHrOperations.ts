@@ -38,16 +38,26 @@ export function useHrOperations() {
 
   const isCreatedOperation = (id: number): boolean => {
     const history = diffMap.value.get(id) ?? []
-    if (!history.length) return false // FIX: нет истории => не считаем created
-    return history.every((h) => h.old_value == null)
+    if (!history.length) {
+      return false
+    }
+    const meaningfulHistory = history.filter((h) => h.field_name && !SKIP_FIELDS.has(h.field_name))
+    if (!meaningfulHistory.length) {
+      return false
+    }
+    return meaningfulHistory.every((h) => h.old_value == null)
   }
 
   const getChangedFields = (id: number): Set<string> => {
     const history = diffMap.value.get(id) ?? []
-    if (!history.length) return new Set()
+    if (!history.length) {
+      return new Set()
+    }
 
     const first = history[0]
-    if (!first) return new Set()
+    if (!first) {
+      return new Set()
+    }
     const lastTime = new Date(first.changed_at).getTime()
 
     const lastBatch = history.filter(
@@ -66,7 +76,11 @@ export function useHrOperations() {
       id_department: payload.id_department,
       id_position: payload.id_position,
       salary: payload.salary,
-      is_active: payload.is_active ?? true,
+      ...(payload.id_hr_operation
+        ? {
+            active_status: payload.active_status,
+          }
+        : {}),
     }
     if (payload.id_hr_operation) {
       await http.patch(`/hr-operations/${payload.id_hr_operation}`, body)
@@ -81,8 +95,9 @@ export function useHrOperations() {
     await reloadAll()
   }
 
-  const rejectOperation = async (id: number) => {
-    await http.patch(`/hr-operations/${id}/reject`)
+  const rejectOperation = async (id: number, reason: string | null) => {
+    await http.patch(`/hr-operations/${id}/reject`, { reason })
+
     await reloadAll()
   }
 

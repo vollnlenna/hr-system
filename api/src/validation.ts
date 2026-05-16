@@ -107,7 +107,12 @@ export const validateHrOperation = Joi.object({
     'any.required': 'Зарплата обязательна',
   }),
 
-  is_active: Joi.boolean().optional(),
+  active_status: Joi.string()
+    .valid('applicant', 'active', 'dismissed')
+    .optional()
+    .messages({
+      'any.only': 'Некорректный статус сотрудника',
+    }),
 });
 
 export const validateFile = Joi.object({

@@ -4,38 +4,58 @@
       <div class="director-info">
         <div v-if="isCreated" class="director-created">Принятие на работу</div>
 
-        <div class="director-title">{{ formatEmployeeName(row.employee_name) }}</div>
-
-        <div class="director-line">
-          <span>Организация:</span>
-          <span>{{ row.organization_name || '[Не найдена]' }}</span>
+        <div class="director-title">
+          {{ formatEmployeeName(row.employee_name) }}
         </div>
 
         <div class="director-line">
-          <span>Отдел:</span>
-          <span :class="{ changed: isChanged('id_department') }">
+          <span> Организация: </span>
+          <span>
+            {{ row.organization_name || '[Не найдена]' }}
+          </span>
+        </div>
+
+        <div class="director-line">
+          <span> Отдел: </span>
+          <span
+            :class="{
+              changed: isChanged('id_department'),
+            }"
+          >
             {{ row.department_name || '[Не найден]' }}
           </span>
         </div>
 
         <div class="director-line">
-          <span>Должность:</span>
-          <span :class="{ changed: isChanged('id_position') }">
+          <span> Должность: </span>
+          <span
+            :class="{
+              changed: isChanged('id_position'),
+            }"
+          >
             {{ row.position_name || '[Не найдена]' }}
           </span>
         </div>
 
         <div class="director-line">
-          <span>Зарплата:</span>
-          <span :class="{ changed: isChanged('salary') }">
+          <span> Зарплата: </span>
+          <span
+            :class="{
+              changed: isChanged('salary'),
+            }"
+          >
             {{ formatCurrency(row.salary) }}
           </span>
         </div>
 
         <div class="director-line">
-          <span>Статус:</span>
-          <span :class="{ changed: isChanged('is_active') }">
-            {{ row.is_active ? 'Работает' : 'Уволен' }}
+          <span> Статус: </span>
+          <span
+            :class="{
+              changed: isChanged('active_status'),
+            }"
+          >
+            {{ getStatusText(row.active_status) }}
           </span>
         </div>
       </div>
@@ -47,34 +67,44 @@
     </div>
 
     <div v-else class="card-body">
-      <div class="card-title">{{ formatEmployeeName(row.employee_name) }}</div>
+      <div class="card-title">
+        {{ formatEmployeeName(row.employee_name) }}
+      </div>
 
       <div class="sep" />
 
       <div class="card-comment">
         <div class="comment-label">Организация:</div>
-        <div class="comment-content">{{ row.organization_name || '[Не найдена]' }}</div>
+        <div class="comment-content">
+          {{ row.organization_name || '[Не найдена]' }}
+        </div>
       </div>
 
       <div class="sep" />
 
       <div class="card-comment">
         <div class="comment-label">Отдел:</div>
-        <div class="comment-content">{{ row.department_name || '[Не найден]' }}</div>
+        <div class="comment-content">
+          {{ row.department_name || '[Не найден]' }}
+        </div>
       </div>
 
       <div class="sep" />
 
       <div class="card-comment">
         <div class="comment-label">Должность:</div>
-        <div class="comment-content">{{ row.position_name || '[Не найдена]' }}</div>
+        <div class="comment-content">
+          {{ row.position_name || '[Не найдена]' }}
+        </div>
       </div>
 
       <div class="sep" />
 
       <div class="card-comment">
         <div class="comment-label">Зарплата:</div>
-        <div class="comment-content">{{ formatCurrency(row.salary) }}</div>
+        <div class="comment-content">
+          {{ formatCurrency(row.salary) }}
+        </div>
       </div>
 
       <div class="sep" />
@@ -82,46 +112,64 @@
       <div class="card-comment">
         <div class="comment-label">Статус:</div>
         <div class="comment-content">
-          <em>{{ row.is_active ? 'Работает' : 'Уволен' }}</em>
+          <em :class="getStatusClass(row.active_status)">
+            {{ getStatusText(row.active_status) }}
+          </em>
         </div>
       </div>
 
       <div v-if="row.approval_status === 'rejected'" class="deleted-overlay">
-        <div class="deleted-content">Отклонено руководителем</div>
+        <div class="deleted-content">
+          <div>Отклонено руководителем</div>
+          <div v-if="row.reject_reason" class="reject-reason">
+            Причина:
+            {{ row.reject_reason }}
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <div v-else class="card hr-card">
     <div class="card-body">
-      <div class="card-title">{{ formatEmployeeName(row.employee_name) }}</div>
+      <div class="card-title">
+        {{ formatEmployeeName(row.employee_name) }}
+      </div>
 
       <div class="sep" />
 
       <div class="card-comment">
         <div class="comment-label">Организация:</div>
-        <div class="comment-content">{{ row.organization_name || '[Не найдена]' }}</div>
+        <div class="comment-content">
+          {{ row.organization_name || '[Не найдена]' }}
+        </div>
       </div>
 
       <div class="sep" />
 
       <div class="card-comment">
         <div class="comment-label">Отдел:</div>
-        <div class="comment-content">{{ row.department_name || '[Не найден]' }}</div>
+        <div class="comment-content">
+          {{ row.department_name || '[Не найден]' }}
+        </div>
       </div>
 
       <div class="sep" />
 
       <div class="card-comment">
         <div class="comment-label">Должность:</div>
-        <div class="comment-content">{{ row.position_name || '[Не найдена]' }}</div>
+        <div class="comment-content">
+          {{ row.position_name || '[Не найдена]' }}
+        </div>
       </div>
 
       <div class="sep" />
 
       <div class="card-comment">
         <div class="comment-label">Зарплата:</div>
-        <div class="comment-content">{{ formatCurrency(row.salary) }}</div>
+        <div class="comment-content">
+          {{ formatCurrency(row.salary) }}
+        </div>
       </div>
 
       <div class="sep" />
@@ -129,7 +177,9 @@
       <div class="card-comment">
         <div class="comment-label">Статус:</div>
         <div class="comment-content">
-          <em>{{ row.is_active ? 'Работает' : 'Уволен' }}</em>
+          <em :class="getStatusClass(row.active_status)">
+            {{ getStatusText(row.active_status) }}
+          </em>
         </div>
       </div>
 
@@ -144,7 +194,10 @@
 
     <div v-if="row.deleted_at" class="deleted-overlay">
       <div class="deleted-content">
-        <div>Удалено: {{ formatDate(row.deleted_at) }}</div>
+        <div>
+          Удалено:
+          {{ formatDate(row.deleted_at) }}
+        </div>
         <button v-if="canManage" class="btn-restore" @click="onRestore">Восстановить</button>
       </div>
     </div>
@@ -156,6 +209,10 @@
     <div v-if="row.approval_status === 'rejected' && !row.deleted_at" class="deleted-overlay">
       <div class="deleted-content">
         <div>Отклонено руководителем</div>
+        <div v-if="row.reject_reason" class="reject-reason">
+          Причина:
+          {{ row.reject_reason }}
+        </div>
         <div v-if="canManage" class="rejected-actions">
           <button v-if="!isCreated" class="btn-restore" @click="$emit('revert', row)">
             Вернуть
@@ -191,23 +248,30 @@ const emit = defineEmits<{
 const isCreated = computed(() => props.isCreatedOperation(props.row.id_hr_operation))
 
 function isChanged(field: string): boolean {
-  // FIX: при "Принятие на работу" ничего не подсвечиваем
-  if (isCreated.value) return false
+  if (isCreated.value) {
+    return false
+  }
   return props.getChangedFields(props.row.id_hr_operation).has(field)
 }
 
 function onDelete() {
-  if (!confirm('Удалить кадровую операцию?')) return
+  if (!confirm('Удалить кадровую операцию?')) {
+    return
+  }
   emit('delete', props.row)
 }
 
 function onRestore() {
-  if (!confirm('Восстановить кадровую операцию?')) return
+  if (!confirm('Восстановить кадровую операцию?')) {
+    return
+  }
   emit('restore', props.row)
 }
 
 function formatEmployeeName(val: unknown): string {
-  if (!val || String(val).trim() === '' || val === 'null') return '[Сотрудник не найден]'
+  if (!val || String(val).trim() === '' || val === 'null') {
+    return '[Сотрудник не найден]'
+  }
   return String(val)
 }
 
@@ -218,7 +282,30 @@ function formatDate(val: unknown) {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB' }).format(value)
+  return new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency: 'RUB',
+  }).format(value)
+}
+
+function getStatusText(status: string): string {
+  if (status === 'active') {
+    return 'Работает'
+  }
+  if (status === 'applicant') {
+    return 'Соискатель'
+  }
+  return 'Уволен'
+}
+
+function getStatusClass(status: string): string {
+  if (status === 'active') {
+    return 'status-active'
+  }
+  if (status === 'applicant') {
+    return 'status-applicant'
+  }
+  return 'status-dismissed'
 }
 </script>
 
@@ -305,5 +392,24 @@ function formatCurrency(value: number): string {
 .rejected-actions .btn-delete {
   width: 120px;
   margin-top: 0;
+}
+
+.status-active {
+  color: #666;
+}
+
+.status-applicant {
+  color: #c99700;
+}
+
+.status-dismissed {
+  color: red;
+}
+
+.reject-reason {
+  margin-top: 10px;
+  max-width: 220px;
+  font-size: 13px;
+  font-style: italic;
 }
 </style>

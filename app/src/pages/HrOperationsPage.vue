@@ -63,6 +63,12 @@
       :existing-operations="actualList"
       @cancel="closeForm"
     />
+
+    <RejectReasonModal
+      :visible="rejectModal.visible"
+      @submit="submitReject"
+      @cancel="closeRejectModal"
+    />
   </div>
 </template>
 
@@ -70,6 +76,7 @@
 import { ref, onMounted, computed, reactive } from 'vue'
 import HrOperationCard from '../components/cards/HrOperationCard.vue'
 import HrOperationModal from '../components/modals/HrOperationModal.vue'
+import RejectReasonModal from '../components/modals/RejectReasonModal.vue'
 import { useHrOperations } from '../composables/useHrOperations'
 import { useAuth } from '../composables/useAuth'
 import type { HrOperation, HrOperationSave, ApprovalStatus } from '../entities/hrOperation'
@@ -96,10 +103,8 @@ const showDeleted = ref(false)
 const showOnlyInactive = ref(false)
 const approvalFilter = ref<ApprovalStatus>(isDirector.value ? 'pending' : 'approved')
 const currentList = computed(() => (showDeleted.value ? deletedList.value : actualList.value))
-
 const organizations = computed(() => {
   const names = currentList.value.map((op) => op.organization_name).filter(Boolean)
-
   return [...new Set(names)]
 })
 
@@ -109,9 +114,23 @@ const filtered = computed(() => {
   list = list.filter((op) => op.approval_status === approvalFilter.value)
 
   if (showOnlyInactive.value) {
-    list = list.filter((op) => !op.is_active)
-  } else if (!showDeleted.value) {
-    list = list.filter((op) => op.is_active)
+    if (approvalFilter.value !== 'approved') {
+      return []
+    }
+    list = list.filter(
+      (op) =>
+        op.active_status ===
+        'dismissed',
+    )
+  } else if (
+    approvalFilter.value === 'approved' &&
+    !showDeleted.value
+  ) {
+    list = list.filter(
+      (op) =>
+        op.active_status !==
+        'dismissed',
+    )
   }
 
   if (selectedOrganization.value) {
@@ -144,6 +163,14 @@ const form = reactive<{
   current: null,
 })
 
+const rejectModal = reactive<{
+  visible: boolean
+  row: HrOperation | null
+}>({
+  visible: false,
+  row: null,
+})
+
 function openForm(row?: HrOperation) {
   if (!canManage.value) return
   form.current = row ?? null
@@ -155,9 +182,13 @@ function closeForm() {
   form.current = null
 }
 
+function closeRejectModal() {
+  rejectModal.visible = false
+  rejectModal.row = null
+}
+
 async function saveForm(payload: HrOperationSave) {
   await saveOperation(payload)
-
   closeForm()
 }
 
@@ -165,8 +196,15 @@ async function approveRow(row: HrOperation) {
   await approveOperation(row.id_hr_operation)
 }
 
-async function rejectRow(row: HrOperation) {
-  await rejectOperation(row.id_hr_operation)
+function rejectRow(row: HrOperation) {
+  rejectModal.row = row
+  rejectModal.visible = true
+}
+
+async function submitReject(reason: string | null) {
+  if (!rejectModal.row) return
+  await rejectOperation(rejectModal.row.id_hr_operation, reason)
+  closeRejectModal()
 }
 
 async function deleteRow(row: HrOperation) {

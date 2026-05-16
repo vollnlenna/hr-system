@@ -54,11 +54,11 @@
         <label>Статус</label>
         <div class="status-radio-group">
           <label class="status-option">
-            <input type="radio" :value="true" v-model="form.is_active" />
+            <input type="radio" value="active" v-model="form.active_status" />
             <span>Работает</span>
           </label>
           <label class="status-option">
-            <input type="radio" :value="false" v-model="form.is_active" />
+            <input type="radio" value="dismissed" v-model="form.active_status" />
             <span>Уволен</span>
           </label>
         </div>
@@ -114,7 +114,7 @@ const form = reactive({
   departmentId: null as number | null,
   positionId: null as number | null,
   salary: null as number | null,
-  is_active: true,
+  active_status: 'active' as 'active' | 'dismissed',
 })
 
 const error = ref('')
@@ -133,7 +133,7 @@ watch(
 
         form.id = p.id_hr_operation
         form.salary = p.salary
-        form.is_active = p.is_active
+        form.active_status = p.active_status === 'applicant' ? 'active' : p.active_status
         form.employeeId = p.id_employee
         form.departmentId = p.id_department
         form.positionId = p.id_position
@@ -200,20 +200,27 @@ function resetForm(clearId = false) {
   if (clearId) form.id = null
 
   form.employeeId = form.organizationId = form.departmentId = form.positionId = form.salary = null
-  form.is_active = true
+  form.active_status = 'active'
   selectedEmployee.value = selectedPosition.value = null
   error.value = ''
 }
 
 function hasActiveOperation(employeeId: number): boolean {
-  return props.existingOperations.some(
-    (op) =>
-      op.id_employee === employeeId &&
-      op.is_active &&
-      op.approval_status !== 'rejected' &&
-      !op.deleted_at &&
-      op.id_hr_operation !== form.id,
-  )
+  return props.existingOperations.some((op) => {
+    if (op.id_employee !== employeeId) {
+      return false
+    }
+    if (op.id_hr_operation === form.id) {
+      return false
+    }
+    if (op.deleted_at) {
+      return false
+    }
+    if (op.approval_status === 'rejected') {
+      return false
+    }
+    return !(op.active_status === 'dismissed' && op.approval_status === 'approved');
+  })
 }
 
 async function submit() {
@@ -229,7 +236,7 @@ async function submit() {
       id_department: form.departmentId ?? undefined,
       id_position: form.positionId ?? undefined,
       salary: form.salary ?? undefined,
-      is_active: form.is_active,
+      active_status: form.active_status,
     })
   } catch (e) {
     if (isAxiosError(e)) {

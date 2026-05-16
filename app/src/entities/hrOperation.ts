@@ -1,11 +1,13 @@
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
+export type ActiveStatus = 'applicant' | 'active' | 'dismissed'
 
 export interface HrOperation {
   id_hr_operation: number
   id_employee: number
   id_department: number
   id_position: number
-  is_active: boolean
+  active_status: ActiveStatus
+  reject_reason?: string | null
   approval_status: ApprovalStatus
   salary: number
   created_at: Date
@@ -24,5 +26,5 @@ export interface HrOperationSave {
   id_department?: number
   id_position?: number
   salary?: number
-  is_active?: boolean
+  active_status?: ActiveStatus
 }
