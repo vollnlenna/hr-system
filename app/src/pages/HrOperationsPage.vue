@@ -30,11 +30,24 @@
         <input type="checkbox" v-model="showDeleted" class="checkbox-input" />
         Удаленные операции
       </label>
+
+      <button class="export-btn" title="Сформировать отчет" @click="exportExcel">
+        <Icon icon="mdi:microsoft-excel" width="20" />
+        <span class="export-text"> Отчет </span>
+      </button>
     </div>
 
-    <div class="page-controls" v-if="canManage && !showDeleted && !showOnlyInactive">
-      <button class="btn-add" @click="openForm()">Добавить</button>
+    <div class="page-controls">
+      <button
+        v-if="canManage && !showDeleted && !showOnlyInactive"
+        class="btn-add"
+        @click="openForm()"
+      >
+        Добавить
+      </button>
     </div>
+
+    <div v-if="exportError" class="error-box">{{ exportError }}</div>
 
     <div :class="['cards-wrap', isDirector ? 'one-col' : 'four-cols']">
       <HrOperationCard
@@ -73,13 +86,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, reactive } from 'vue'
+import { ref, onMounted, computed, reactive, watch } from 'vue'
+import ExcelJS from 'exceljs'
+import { saveAs } from 'file-saver'
 import HrOperationCard from '../components/cards/HrOperationCard.vue'
 import HrOperationModal from '../components/modals/HrOperationModal.vue'
 import RejectReasonModal from '../components/modals/RejectReasonModal.vue'
 import { useHrOperations } from '../composables/useHrOperations'
 import { useAuth } from '../composables/useAuth'
-import type { HrOperation, HrOperationSave, ApprovalStatus } from '../entities/hrOperation'
+import type {
+  HrOperation,
+  HrOperationSave,
+  ApprovalStatus,
+  ActiveStatus,
+} from '../entities/hrOperation'
+import { Icon } from '@iconify/vue'
 
 const {
   reloadAll,
@@ -97,12 +118,22 @@ const {
 
 const { currentUser, canManage } = useAuth()
 const isDirector = computed(() => currentUser.value?.id_role === 3)
+
 const searchQuery = ref('')
 const selectedOrganization = ref('')
 const showDeleted = ref(false)
 const showOnlyInactive = ref(false)
 const approvalFilter = ref<ApprovalStatus>(isDirector.value ? 'pending' : 'approved')
+
+watch(
+  () => currentUser.value?.id_role,
+  (role) => {
+    approvalFilter.value = role === 3 ? 'pending' : 'approved'
+  },
+)
+
 const currentList = computed(() => (showDeleted.value ? deletedList.value : actualList.value))
+
 const organizations = computed(() => {
   const names = currentList.value.map((op) => op.organization_name).filter(Boolean)
   return [...new Set(names)]
@@ -117,20 +148,9 @@ const filtered = computed(() => {
     if (approvalFilter.value !== 'approved') {
       return []
     }
-    list = list.filter(
-      (op) =>
-        op.active_status ===
-        'dismissed',
-    )
-  } else if (
-    approvalFilter.value === 'approved' &&
-    !showDeleted.value
-  ) {
-    list = list.filter(
-      (op) =>
-        op.active_status !==
-        'dismissed',
-    )
+    list = list.filter((op) => op.active_status === 'dismissed')
+  } else if (approvalFilter.value === 'approved' && !showDeleted.value) {
+    list = list.filter((op) => op.active_status !== 'dismissed')
   }
 
   if (selectedOrganization.value) {
@@ -138,7 +158,6 @@ const filtered = computed(() => {
   }
 
   const q = searchQuery.value.trim().toLowerCase()
-
   if (!q) return list
 
   return list.filter(
@@ -218,6 +237,142 @@ async function restoreRow(row: HrOperation) {
 async function revertRow(row: HrOperation) {
   await revertOperation(row.id_hr_operation)
 }
+
+const exportError = ref('')
+
+function getApprovalText(s: ApprovalStatus): string {
+  if (s === 'approved') return 'Одобренные'
+  if (s === 'pending') return 'На рассмотрении'
+  return 'Отклоненные'
+}
+
+function getActiveStatusText(s: ActiveStatus): string {
+  if (s === 'active') return 'Работает'
+  if (s === 'applicant') return 'Соискатель'
+  return 'Уволен'
+}
+
+function formatDate(val: unknown) {
+  if (!val) return ''
+  const d = new Date(String(val))
+  return isNaN(d.getTime()) ? String(val) : d.toLocaleString('ru-RU')
+}
+
+async function exportExcel() {
+  exportError.value = ''
+
+  const rows = filtered.value
+  if (!rows.length) {
+    exportError.value = 'Нет данных для выгрузки в файл'
+    return
+  }
+
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet('HR operations')
+
+  const filterHeader = [
+    'Организация',
+    'Статус операций',
+    'Уволенные сотрудники',
+    'Удаленные операции',
+  ]
+  const filterValues = [
+    selectedOrganization.value ? selectedOrganization.value : 'Все организации',
+    getApprovalText(approvalFilter.value),
+    showOnlyInactive.value ? 'Да' : 'Нет',
+    showDeleted.value ? 'Да' : 'Нет',
+  ]
+
+  const filterHeaderRow = ws.addRow(filterHeader)
+  filterHeaderRow.font = { bold: true }
+  ws.addRow(filterValues)
+  ws.addRow([])
+
+  const header = ['ФИО', 'Организация', 'Отдел', 'Должность', 'Зарплата', 'Статус']
+
+  const includeReason = approvalFilter.value === 'rejected'
+  const includeDeletedAt = showDeleted.value
+
+  if (includeReason) header.push('Причина отклонения')
+  if (includeDeletedAt) header.push('Время удаления')
+
+  const tableHeaderRowIndex = ws.rowCount + 1
+  const tableHeaderRow = ws.addRow(header)
+  tableHeaderRow.font = { bold: true }
+
+  rows.forEach((op) => {
+    const rowArr: (string | number)[] = [
+      op.employee_name ?? '',
+      op.organization_name ?? '',
+      op.department_name ?? '',
+      op.position_name ?? '',
+      op.salary ?? '',
+      getActiveStatusText(op.active_status),
+    ]
+
+    if (includeReason) rowArr.push(op.reject_reason?.trim() ? op.reject_reason : '-')
+    if (includeDeletedAt) rowArr.push(formatDate(op.deleted_at))
+
+    ws.addRow(rowArr)
+  })
+
+  const colCount = ws.columnCount
+
+  for (let c = 1; c <= colCount; c++) {
+    let max = 10
+
+    ws.eachRow({ includeEmpty: true }, (row) => {
+      const cell = row.getCell(c)
+      const v = cell.value
+      const len = v == null ? 0 : String(v).length
+      if (len > max) max = len
+    })
+
+    const col = ws.getColumn(c)
+    col.width = Math.min(Math.max(max + 2, 12), 60)
+  }
+
+  if (isDirector.value && approvalFilter.value === 'pending') {
+    const yellowFill: ExcelJS.Fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFF2CC' },
+    }
+
+    const deptCol = 3
+    const posCol = 4
+    const salaryCol = 5
+    const statusCol = 6
+
+    const firstDataRow = tableHeaderRowIndex + 1
+
+    rows.forEach((op, i) => {
+      const excelRowIndex = firstDataRow + i
+      const changed = getChangedFields(op.id_hr_operation)
+      const rowRef = ws.getRow(excelRowIndex)
+
+      if (op.active_status === 'applicant') {
+        rowRef.getCell(statusCol).fill = yellowFill
+        return
+      }
+
+      if (changed.has('id_department')) rowRef.getCell(deptCol).fill = yellowFill
+      if (changed.has('id_position')) rowRef.getCell(posCol).fill = yellowFill
+      if (changed.has('salary')) rowRef.getCell(salaryCol).fill = yellowFill
+      if (changed.has('active_status')) rowRef.getCell(statusCol).fill = yellowFill
+    })
+  }
+
+  const fileName = `hr_operations_${approvalFilter.value}_${new Date().toISOString().slice(0, 10)}.xlsx`
+
+  const buffer = await wb.xlsx.writeBuffer()
+  saveAs(
+    new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    }),
+    fileName,
+  )
+}
 </script>
 
 <style scoped>
@@ -240,5 +395,36 @@ async function revertRow(row: HrOperation) {
 
 .one-col {
   grid-template-columns: 1fr;
+}
+
+.export-btn {
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid #aaa;
+  border-radius: 8px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: 0.15s;
+}
+
+.export-btn:hover {
+  background: #f5f5f5;
+}
+
+.export-btn :deep(svg) {
+  flex-shrink: 0;
+}
+
+.export-text {
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  margin-top: 1px;
 }
 </style>

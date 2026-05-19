@@ -58,8 +58,8 @@
         >
           Пользователи
         </router-link>
-        <button class="nav-item logout-btn" @click="handleLogout">Выход</button>
       </nav>
+      <button class="nav-item logout-btn" @click="handleLogout">Выход</button>
     </aside>
 
     <main class="main-content">
@@ -153,7 +153,7 @@ async function handleLogout() {
 }
 
 .logout-btn {
-  margin-top: 16px;
+  margin: auto 15px 20px;
   color: red;
   border-color: red;
   background: #fff;

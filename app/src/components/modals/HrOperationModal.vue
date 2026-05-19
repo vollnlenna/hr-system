@@ -216,16 +216,25 @@ function hasActiveOperation(employeeId: number): boolean {
     if (op.deleted_at) {
       return false
     }
-    if (op.approval_status === 'rejected') {
+    if (op.active_status === 'applicant' && op.approval_status !== 'rejected') {
+      return true
+    }
+    if (op.active_status === 'active') {
+      return true
+    }
+    if (op.active_status === 'dismissed' && op.approval_status === 'approved') {
       return false
     }
-    return !(op.active_status === 'dismissed' && op.approval_status === 'approved');
+    return (
+      op.active_status === 'dismissed' &&
+      (op.approval_status === 'pending' || op.approval_status === 'rejected')
+    )
   })
 }
 
 async function submit() {
   error.value = ''
-  if (!form.id && form.employeeId && hasActiveOperation(form.employeeId)) {
+  if (form.employeeId && form.active_status === 'active' && hasActiveOperation(form.employeeId)) {
     error.value = 'Этот сотрудник уже работает/на рассмотрении!'
     return
   }

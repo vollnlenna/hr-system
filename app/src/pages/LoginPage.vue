@@ -67,7 +67,7 @@ async function onSubmit() {
   loading.value = true
   try {
     await login(form.login, form.password)
-    await router.push('/organizations')
+    await router.push('/')
   } catch (e) {
     if (isAxiosError(e)) {
       error.value = e.response?.data?.message ?? 'Ошибка авторизации'

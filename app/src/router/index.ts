@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 
-import organizations from '@/pages/OrganizationsPage.vue';
+import dashboard from '@/pages/DashboardPage.vue'
+import organizations from '@/pages/OrganizationsPage.vue'
 import departments from '@/pages/DepartmentsPage.vue';
 import positions from '@/pages/PositionsPage.vue';
 import employees from '@/pages/EmployeesPage.vue';
@@ -11,7 +12,7 @@ import users from '@/pages/UsersPage.vue';
 import login from '@/pages/LoginPage.vue';
 
 const routes = [
-  { path: '/', redirect: '/organizations' },
+  { path: '/', component: dashboard, meta: { requiresAuth: true } },
   { path: '/login', component: login, meta: { requiresAuth: false } },
   { path: '/organizations', component: organizations, meta: { requiresAuth: true } },
   { path: '/departments', component: departments, meta: { requiresAuth: true } },
@@ -20,7 +21,7 @@ const routes = [
   { path: '/hrOperations', component: hrOperations, meta: { requiresAuth: true } },
   { path: '/change-history', component: changeHistory, meta: { requiresAuth: true } },
   { path: '/users', component: users, meta: { requiresAuth: true, role: 'admin' } },
-];
+]
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -36,10 +37,10 @@ router.beforeEach(async (to) => {
     return '/login';
   }
   if (to.path === '/login' && auth.isAuthenticated.value) {
-    return '/organizations';
+    return '/';
   }
   if (to.meta.role === 'admin' && !auth.isAdmin.value) {
-    return '/organizations';
+    return '/';
   }
   return true;
 });
