@@ -29,6 +29,8 @@ services:
     depends_on:
       - db
       - redis
+    volumes:
+      - ./storage:/app/storage
     networks:
       - default
 
