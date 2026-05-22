@@ -103,6 +103,7 @@ async function handleLogout() {
   flex-direction: column;
   padding: 20px 0;
   flex-shrink: 0;
+  height: 100vh;
 }
 
 .logo-link {
@@ -124,6 +125,8 @@ async function handleLogout() {
   flex-direction: column;
   gap: 8px;
   padding: 0 15px;
+  flex: 1;
+  min-height: 0;
 }
 
 .nav-item {
@@ -153,7 +156,7 @@ async function handleLogout() {
 }
 
 .logout-btn {
-  margin: auto 15px 20px;
+  margin: 20px 15px 20px;
   color: red;
   border-color: red;
   background: #fff;

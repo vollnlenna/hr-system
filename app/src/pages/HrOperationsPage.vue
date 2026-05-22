@@ -386,7 +386,7 @@ async function exportExcel() {
 }
 
 .org-select {
-  width: 260px;
+  width: 350px;
 }
 
 .status-select {

@@ -162,6 +162,6 @@ function closePasswordModal() {
 
 <style scoped>
 .role-select {
-  width: 300px;
+  width: 350px;
 }
 </style>

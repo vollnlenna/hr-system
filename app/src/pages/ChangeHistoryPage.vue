@@ -100,7 +100,7 @@ onMounted(async () => {
 
 <style scoped>
 .object-select {
-  width: 220px;
+  width: 250px;
 }
 .table-wrap {
   overflow-x: auto;
