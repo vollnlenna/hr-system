@@ -7,6 +7,8 @@ RUN npm install
 
 COPY docs .
 
+RUN npm install
+
 EXPOSE 5173
 
 CMD ["npx", "vitepress", "dev", ".", "--host", "0.0.0.0"]
