@@ -77,8 +77,6 @@ services:
       - .env
     ports:
       - "${DOCS_PORT}:5173"
-    volumes:
-      - ./docs:/app
     networks:
       - default
 
