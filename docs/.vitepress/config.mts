@@ -4,6 +4,11 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "AREAL-HR Docs",
   description: "Документация системы кадрового учета",
+  vite: {
+    server: {
+      allowedHosts: ['arealhr.ru', 'www.arealhr.ru']
+    }
+  },
   head: [
     ['link', { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }]
   ],
