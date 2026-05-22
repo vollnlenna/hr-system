@@ -9,4 +9,4 @@ COPY docs .
 
 EXPOSE 5173
 
-CMD ["npm", "run", "docs:dev", "--", "--host", "0.0.0.0"]
+CMD ["npx", "vitepress", "dev", ".", "--host", "0.0.0.0"]
