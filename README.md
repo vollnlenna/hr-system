@@ -9,10 +9,3 @@
   <p>База данных: <strong>PostgreSQL</strong></p>
   <p>Контейнеризация: <strong>Docker, Docker Compose</strong></p>
 </div>
-<div>
-  <h2>Ссылки</h2>
-  <ul>
-    <li><strong>Веб-приложение:</strong> <a href="https://arealhr.ru" target="_blank">https://arealhr.ru</a></li>
-    <li><strong>Документация:</strong> <a href="https://arealhr.ru/docs" target="_blank">https://arealhr.ru/docs</a></li>
-  </ul>
-</div>
